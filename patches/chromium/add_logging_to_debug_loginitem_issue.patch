@@ -1,0 +1,89 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Kleinschmidt <jkleinsc@electronjs.org>
+Date: Wed, 13 Jan 2021 11:05:22 -0500
+Subject: add logging to debug loginitem issue
+
+this appears to be related to https://crbug.com/1154377
+
+diff --git a/base/mac/mac_util.mm b/base/mac/mac_util.mm
+index 2586fc2e7288555e131cb04fff81445ed171c92f..9320f91eb299d11669a63c32fb993700b2ce0975 100644
+--- a/base/mac/mac_util.mm
++++ b/base/mac/mac_util.mm
+@@ -63,6 +63,7 @@ LSSharedFileListRef GetLoginFileList() {
+   // retained reference to it. Caller is responsible for releasing the
+   // reference.
+   ScopedCFTypeRef<LSSharedFileListItemRef> GetLoginItemForApp() {
++    LOG(INFO) << "In GetLoginItemForApp";
+     DCHECK(login_items_.get()) << "Initialize() failed or not called.";
+ 
+     NSURL* url = [NSURL fileURLWithPath:[base::mac::MainBundle() bundlePath]];
+@@ -83,11 +84,12 @@ LSSharedFileListRef GetLoginFileList() {
+ #pragma clang diagnostic pop
+ 
+       if (item_url && CFEqual(item_url, url)) {
++        LOG(INFO) << "FOUND THE ONE WE NEED";
+         return ScopedCFTypeRef<LSSharedFileListItemRef>(
+             item, base::scoped_policy::RETAIN);
+       }
+     }
+-
++    LOG(INFO) << "COULD NOT FIND THE ONE WE NEED";
+     return ScopedCFTypeRef<LSSharedFileListItemRef>();
+   }
+ 
+@@ -170,8 +172,10 @@ bool SetFileBackupExclusion(const FilePath& file_path) {
+ 
+ bool CheckLoginItemStatus(bool* is_hidden) {
+   LoginItemsFileList login_items;
+-  if (!login_items.Initialize())
++  if (!login_items.Initialize()) {
++    LOG(INFO) << "LOGIN ITEMS COULD NOT BE INITIALIZED!!!!";
+     return false;
++  }
+ 
+   base::ScopedCFTypeRef<LSSharedFileListItemRef> item(
+       login_items.GetLoginItemForApp());
+@@ -186,18 +190,22 @@ bool CheckLoginItemStatus(bool* is_hidden) {
+ 
+ void AddToLoginItems(bool hide_on_startup) {
+   LoginItemsFileList login_items;
+-  if (!login_items.Initialize())
++  if (!login_items.Initialize()) {
++    LOG(INFO) << "IN AddToLoginItems; could not initialize";
+     return;
++  }
+ 
+   base::ScopedCFTypeRef<LSSharedFileListItemRef> item(
+       login_items.GetLoginItemForApp());
+ 
+   if (item.get() && (IsHiddenLoginItem(item) == hide_on_startup)) {
++    LOG(INFO) << "IN AddToLoginItems; Already is a login item with required hide flag";
+     return;  // Already is a login item with required hide flag.
+   }
+ 
+   // Remove the old item, it has wrong hide flag, we'll create a new one.
+   if (item.get()) {
++    LOG(INFO) << "// Remove the old item, it has wrong hide flag, we'll create a new one.";
+ #pragma clang diagnostic push  // https://crbug.com/1154377
+ #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+     LSSharedFileListItemRemove(login_items.GetLoginFileList(), item);
+@@ -211,7 +219,7 @@ void AddToLoginItems(bool hide_on_startup) {
+   BOOL hide = hide_on_startup ? YES : NO;
+   NSDictionary* properties =
+       @{(NSString*)kLSSharedFileListLoginItemHidden : @(hide) };
+-
++  LOG(INFO) << "In AddToLoginItems, creating new item";
+   ScopedCFTypeRef<LSSharedFileListItemRef> new_item(
+       LSSharedFileListInsertItemURL(
+           login_items.GetLoginFileList(), kLSSharedFileListItemLast, nullptr,
+@@ -220,7 +228,10 @@ void AddToLoginItems(bool hide_on_startup) {
+ #pragma clang diagnostic pop
+ 
+   if (!new_item.get()) {
++    LOG(INFO) << "Couldn't insert current app into Login Items list.";
+     DLOG(ERROR) << "Couldn't insert current app into Login Items list.";
++  } else {
++    LOG(INFO) << "Success inserting current app into Login Items list.";
+   }
+ }
+ 
