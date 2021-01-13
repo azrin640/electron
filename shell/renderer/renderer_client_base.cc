@@ -194,16 +194,8 @@ void RendererClientBase::RenderThreadStarted() {
       extension_scheme);
   // In Chrome we should set extension's origins to match the pages they can
   // work on, but in Electron currently we just let extensions do anything.
-  blink::SchemeRegistry::RegisterURLSchemeAsSecure(extension_scheme);
   blink::SchemeRegistry::RegisterURLSchemeAsBypassingContentSecurityPolicy(
       extension_scheme);
-
-  // Parse --secure-schemes=scheme1,scheme2
-  std::vector<std::string> secure_schemes_list =
-      ParseSchemesCLISwitch(command_line, switches::kSecureSchemes);
-  for (const std::string& scheme : secure_schemes_list)
-    blink::SchemeRegistry::RegisterURLSchemeAsSecure(
-        WTF::String::FromUTF8(scheme.data(), scheme.length()));
 
   std::vector<std::string> fetch_enabled_schemes =
       ParseSchemesCLISwitch(command_line, switches::kFetchSchemes);
