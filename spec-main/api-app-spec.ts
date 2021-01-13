@@ -598,7 +598,8 @@ describe('app module', () => {
     });
   });
 
-  describe('app.get/setLoginItemSettings API', function () {
+  // TODO (jkleinsc) renable for macOS arm64 once https://github.com/electron/electron/issues/27309 is resolved
+  ifdescribe(process.platform !== 'linux' && !process.mas && (process.platform !== 'darwin' && process.arch !== 'arm64'))('app.get/setLoginItemSettings API', function () {
     const updateExe = path.resolve(path.dirname(process.execPath), '..', 'Update.exe');
     const processStartArgs = [
       '--processStart', `"${path.basename(process.execPath)}"`,
@@ -615,10 +616,6 @@ describe('app module', () => {
       '/d'
     ];
 
-    before(function () {
-      if (process.platform === 'linux' || process.mas) this.skip();
-    });
-
     beforeEach(() => {
       app.setLoginItemSettings({ openAtLogin: false });
       app.setLoginItemSettings({ openAtLogin: false, path: updateExe, args: processStartArgs });
@@ -633,7 +630,6 @@ describe('app module', () => {
 
     ifit(process.platform !== 'win32')('sets and returns the app as a login item', function () {
       app.setLoginItemSettings({ openAtLogin: true });
-      console.log('(app.getLoginItemSettings are:', app.getLoginItemSettings());
       expect(app.getLoginItemSettings()).to.deep.equal({
         openAtLogin: true,
         openAsHidden: false,
@@ -682,7 +678,6 @@ describe('app module', () => {
 
     ifit(process.platform !== 'win32')('adds a login item that loads in hidden mode', function () {
       app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
-      console.log('2 app.getLoginItemSettings are:', app.getLoginItemSettings());
       expect(app.getLoginItemSettings()).to.deep.equal({
         openAtLogin: true,
         openAsHidden: process.platform === 'darwin' && !process.mas, // Only available on macOS
@@ -712,7 +707,6 @@ describe('app module', () => {
     });
 
     it('correctly sets and unsets the LoginItem', function () {
-      console.log('3 app.getLoginItemSettings are:', app.getLoginItemSettings());
       expect(app.getLoginItemSettings().openAtLogin).to.equal(false);
 
       app.setLoginItemSettings({ openAtLogin: true });
@@ -729,7 +723,6 @@ describe('app module', () => {
       expect(app.getLoginItemSettings().openAsHidden).to.equal(false);
 
       app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
-      console.log('4 app.getLoginItemSettings are:', app.getLoginItemSettings());
       expect(app.getLoginItemSettings().openAtLogin).to.equal(true);
       expect(app.getLoginItemSettings().openAsHidden).to.equal(true);
 
